@@ -21,7 +21,7 @@ class LLMAssessment(BaseModel):
 # Make sure your vLLM server is running on localhost:8000
 print("Connecting to vLLM server...")
 llm = ChatOpenAI(
-    model="meta-llama/Meta-Llama-3-8B-Instruct", # Must match the model name running in vLLM
+    model="Qwen/Qwen2.5-7B-Instruct", # Must match the model name running in vLLM
     openai_api_key="EMPTY",                      # Local vLLM doesn't need a real key
     openai_api_base="http://localhost:8000/v1",
     temperature=0.0,                             # 0.0 is best for strict classification
@@ -42,7 +42,7 @@ prompt = ChatPromptTemplate.from_messages([
 chain = prompt | structured_llm
 
 # 4. Load your high-risk dataset
-input_file = "hitl_green_100.csv"
+input_file = "data/hitl_green_100.csv"
 print(f"Loading data from {input_file}...")
 df = pd.read_csv(input_file)
 
@@ -79,6 +79,6 @@ cols = ['doc_id', 'text', 'p_green', 'u', 'llm_green_suggested', 'llm_confidence
 df = df[cols]
 
 # 7. Export the final file for Excel review
-output_file = "hitl_green_100_ready_for_review.csv"
+output_file = "data/hitl_green_100_ready_for_review.csv"
 df.to_csv(output_file, index=False)
 print(f"\nDone! File saved to {output_file}. Ready for manual Excel review.")

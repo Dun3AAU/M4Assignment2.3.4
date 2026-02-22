@@ -3,19 +3,21 @@ name = "m4assigment3"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = "==3.12.*"
+
 dependencies = [
-    "dataset>=1.6.2",
-    "datasets>=4.5.0",
-    "langchain>=1.2.10",
-    "langchain-openai>=1.1.10",
-    "numpy>=2.4.2",
-    "pandas>=3.0.1",
-    "pyarrow>=23.0.1",
-    "pydantic>=2.12.5",
-    "scikit-learn>=1.8.0",
-    "sentence-transformers>=5.2.3",
-    "torch>=2.10.0",
-    "tqdm>=4.67.3",
-    "transformers>=5.2.0",
+    "dataset",
+    "datasets",
+    "langchain",
+    "langchain-openai",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "pydantic",
+    "scikit-learn",
+    "sentence-transformers",
+    "torch",
+    "tqdm",
+    "transformers",
+    "vllm>=0.10.0",
 ]
