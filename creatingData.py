@@ -4,8 +4,8 @@ from tqdm.auto import tqdm
 import torch
 from datasets import load_dataset
 def main():
-    ds = load_dataset("AI-Growth-Lab/patents_claims_1.5m_traim_test")
-    df = pd.DataFrame(ds["train"])
+    ds = load_dataset("AI-Growth-Lab/patents_claims_1.5m_traim_test", split="train")
+    df = ds.to_pandas()
 
     #Creating a binary column for green tech based on the presence of Y02* codes
     y02_cols = [c for c in df.columns if str(c).startswith("Y02")]
@@ -36,8 +36,14 @@ def main():
     final_df = pd.concat([train, pool, eval_], ignore_index=True)
 
     final_df.to_parquet("patents_50k_green.parquet", index=False)
-    final_df["split"].value_counts()
+    
+    #print some info about the final dataset, to check that everything looks good
+    print(final_df["split"].value_counts())
+    print(final_df["is_green_silver"].value_counts())
+    print(final_df.groupby("split")["is_green_silver"].value_counts())
 
+    #and head of the final dataset
+    print(final_df.head())
 
 if __name__ == "__main__":
     main()
