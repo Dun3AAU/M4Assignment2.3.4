@@ -7,14 +7,14 @@ from langchain_core.prompts import ChatPromptTemplate
 
 # 1. Define the Structured Output Schema using Pydantic
 class LLMAssessment(BaseModel):
-    llm_green_suggested: int = Field(
+    llm_green_suggested: Literal[0, 1] = Field(
         description="1 if the claim describes green technology (e.g., climate change mitigation, renewable energy, clean tech), 0 if not."
     )
     llm_confidence: Literal["low", "medium", "high"] = Field(
         description="Confidence level in the prediction."
     )
     llm_rationale: str = Field(
-        description="1-3 sentences explaining the reasoning. You MUST cite specific phrases from the claim text."
+        description="1-3 sentences explaining the reasoning. Cite phrases if they exist; otherwise state “No explicit environmental benefit”"
     )
 
 # 2. Connect to the local vLLM server via LangChain's OpenAI wrapper
@@ -25,7 +25,8 @@ llm = ChatOpenAI(
     openai_api_key="EMPTY",                      # Local vLLM doesn't need a real key
     openai_api_base="http://localhost:8000/v1",
     temperature=0.0,                             # 0.0 is best for strict classification
-    max_tokens=256
+    max_tokens=200,
+    model_kwargs={"response_format": {"type": "json_object"}}
 )
 
 # Bind the Pydantic schema to the LLM
@@ -33,9 +34,26 @@ structured_llm = llm.with_structured_output(LLMAssessment)
 
 # 3. Create the Prompt Template
 prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are an expert patent analyst. Evaluate the following patent claim. "
-               "Rely ONLY on the provided text. Do not hallucinate external metadata. "
-               "Provide your final assessment strictly in the requested format."),
+    ("system",
+     "You are a strict binary classifier for green technology patents.\n\n"
+
+     "Definition of GREEN (1):\n"
+     "The text explicitly states an environmental, energy-saving, emission-reducing, "
+     "pollution-reducing, or renewable energy benefit.\n\n"
+
+     "Definition of NOT GREEN (0):\n"
+     "- No environmental benefit mentioned\n"
+     "- Benefit is indirect or implied\n"
+     "- Only improves efficiency, performance, durability, cost, or convenience\n"
+     "- General electronics, batteries, materials, or control systems without explicit environmental purpose\n\n"
+
+     "Decision rules:\n"
+     "- Output 1 ONLY if environmental benefit is explicitly stated in the text.\n"
+     "- If uncertain, ambiguous, or inferred → output 0.\n"
+     "- Be conservative. Borderline cases are NOT green.\n"
+     "- Do NOT use outside knowledge.\n"
+     "- Respond only with valid JSON."
+    ),
     ("user", "Claim Text:\n{text}")
 ])
 
@@ -79,6 +97,6 @@ cols = ['doc_id', 'text', 'p_green', 'u', 'llm_green_suggested', 'llm_confidence
 df = df[cols]
 
 # 7. Export the final file for Excel review
-output_file = "data/hitl_green_100_ready_for_review.csv"
+output_file = "data/hitl_green_100_ready_for_review.2.csv"
 df.to_csv(output_file, index=False)
 print(f"\nDone! File saved to {output_file}. Ready for manual Excel review.")

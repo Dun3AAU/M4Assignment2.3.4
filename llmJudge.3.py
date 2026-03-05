@@ -7,14 +7,14 @@ from langchain_core.prompts import ChatPromptTemplate
 
 # 1. Define the Structured Output Schema using Pydantic
 class LLMAssessment(BaseModel):
-    llm_green_suggested: int = Field(
+    llm_green_suggested: Literal[0, 1] = Field(
         description="1 if the claim describes green technology (e.g., climate change mitigation, renewable energy, clean tech), 0 if not."
     )
     llm_confidence: Literal["low", "medium", "high"] = Field(
         description="Confidence level in the prediction."
     )
     llm_rationale: str = Field(
-        description="1-3 sentences explaining the reasoning. You MUST cite specific phrases from the claim text."
+        description="1-3 sentences explaining the reasoning. Cite phrases if they exist; otherwise state “No explicit environmental benefit”"
     )
 
 # 2. Connect to the local vLLM server via LangChain's OpenAI wrapper
@@ -25,7 +25,8 @@ llm = ChatOpenAI(
     openai_api_key="EMPTY",                      # Local vLLM doesn't need a real key
     openai_api_base="http://localhost:8000/v1",
     temperature=0.0,                             # 0.0 is best for strict classification
-    max_tokens=256
+    max_tokens=200,
+    model_kwargs={"response_format": {"type": "json_object"}}
 )
 
 # Bind the Pydantic schema to the LLM
@@ -33,9 +34,27 @@ structured_llm = llm.with_structured_output(LLMAssessment)
 
 # 3. Create the Prompt Template
 prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are an expert patent analyst. Evaluate the following patent claim. "
-               "Rely ONLY on the provided text. Do not hallucinate external metadata. "
-               "Provide your final assessment strictly in the requested format."),
+    ("system",
+     "You are a expert in identifying green technology in patent claims.\n\n"
+
+     "Label as GREEN (1) if the text describes a technology that:\n"
+     "- Explicitly improves environmental impact, energy efficiency, emissions, pollution reduction, or resource conservation\n"
+     "OR\n"
+     "- Clearly contributes to sustainability in a reasonable and direct way (e.g., energy saving, reduced material use, improved battery efficiency, renewable energy, waste reduction).\n\n"
+
+     "Label as NOT GREEN (0) if:\n"
+     "- No environmental or resource benefit is mentioned or reasonably implied\n"
+     "- The improvement is only about performance, speed, cost, convenience, durability, or general functionality\n"
+     "- The environmental benefit would require speculation or outside knowledge\n\n"
+
+     "Decision rules:\n"
+     "- If the technology reduces energy use, material consumption, emissions, or environmental impact → label 1\n"
+     "- If unsure or weakly related → label 0\n"
+     "- Use only the provided text\n"
+     "- Respond only with valid JSON.\n\n"
+
+     "Typical datasets can contain both green and non-green patents."
+    ),
     ("user", "Claim Text:\n{text}")
 ])
 
@@ -79,6 +98,6 @@ cols = ['doc_id', 'text', 'p_green', 'u', 'llm_green_suggested', 'llm_confidence
 df = df[cols]
 
 # 7. Export the final file for Excel review
-output_file = "data/hitl_green_100_ready_for_review.csv"
+output_file = "data/hitl_green_100_ready_for_review.3.csv"
 df.to_csv(output_file, index=False)
 print(f"\nDone! File saved to {output_file}. Ready for manual Excel review.")
